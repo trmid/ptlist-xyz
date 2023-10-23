@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>User Vault List • PoolTogether</title>
+    <meta name="description" content="Generate a PoolTogether vault list from an account's deposits.">
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="/favicon.svg" type="image/svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      html, body {
+        margin: 0;
+      }
+      body {
+        position: fixed;
+        inset: 0;
+        background-color: rgb(76, 36, 159);
+        background: linear-gradient(rgb(76, 36, 159) 0, rgb(101, 56, 193) 100%);
+        background-attachment: fixed;
+        background-size: cover;
+        color: white;
+        font-family: 'Hanken Grotesk', sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+      }
+      header, main, footer {
+        padding: 1rem;
+        width: 100%;
+        max-width: 1024px;
+        margin: 0 auto;
+        text-align: center;
+      }
+      main {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      a, a:visited {
+        color: gold;
+      }
+      #search-address, #search-btn {
+        padding: 0 12px;
+        border-radius: 7px;
+        background-color: white;
+        border: 1px solid rgb(76, 36, 159);
+        height: 40px;
+        position: relative;
+      }
+      #search-address {
+        width: 400px;
+        max-width: 80vw;
+      }
+      #search-bar {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 3px;
+      }
+      #search-status {
+        margin-top: 1rem;
+      }
+      #search-results {
+        display: flex;
+        justify-content: center;
+        margin-top: 1rem;
+        overflow-y: auto;
+        flex-grow: 1;
+        height: 0;
+      }
+      table tr:not(:last-child) th, table tr:not(:last-child) td {
+        border-bottom: 1px solid #aaa;
+      }
+      table {
+        border: 1px solid #aaa;
+        border-radius: 7px;
+        padding: 0.5rem;
+        max-width: 95vw;
+      }
+      table th, table, td {
+        text-align: left;
+        padding: 5px;
+      }
+      table code {
+        max-width: 20vw;
+        display: inline-block;
+        overflow-wrap: break-word;
+      }
+      h1 {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      h1 > img {
+        width: 50px;
+        height: 50px;
+        margin-right: 0.5rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1><img src="favicon.svg" alt="">PT List</h1>
+      <h3>Generate a PoolTogether vault list from an account's deposits.</h3>
+    </header>
+    <main>
+      <script>
+        window.addEventListener("load", () => {
+          // Get HTML elements:
+          const searchAddress = document.getElementById("search-address");
+          const searchBtn = document.getElementById("search-btn");
+          const searchStatus = document.getElementById("search-status");
+          const searchResults = document.getElementById("search-results");
+
+          // Define constants:
+          const apiUrl = "https://api.ptvault.xyz/";
+          const testUrl = "https://app.cabana.fi/api/vaultList/default/";
+          const chainSymbols = {
+            1: "ETH",
+            5: "Goerli",
+            10: "OP",
+            420: "OP Goerli"
+          }
+
+          // Function to fetch and display a vault list from a URL:
+          const displayVaultInfo = async (url) => {
+            try {
+              searchStatus.innerHTML = "Searching for vaults...";
+              searchResults.innerHTML = "";
+              searchBtn.setAttribute("disabled", "true");
+              searchAddress.setAttribute("disabled", "true");
+              const res = await fetch(url);
+              if (res.status !== 200) throw new Error(res.statusText);
+              const json = await res.json();
+              json.tokens = json.tokens.sort((a,b) => a.chainId - b.chainId);
+              const table = document.createElement("table");
+              table.innerHTML = `
+              <tr>
+                <th>Chain</th>
+                <th>Vault Name</th>
+                <th>Symbol</th>
+                <th>Address</th>
+              </tr>
+              `;
+              for (const vault of json.tokens) {
+                table.innerHTML += `
+                <tr>
+                  <td>${chainSymbols[vault.chainId] ?? vault.chainId}</td>
+                  <td>${vault.name}</td>
+                  <td>${vault.symbol}</td>
+                  <td><code>${vault.address}</code></td>
+                </tr>
+                `;
+              }
+              searchResults.innerHTML = "";
+              searchResults.appendChild(table);
+              searchStatus.innerHTML = `<a href="https://app.cabana.fi/?list=${encodeURIComponent(url)}" target="_blank">Import this list to Cabana.fi 🌴</a>`;
+            } catch (err) {
+              console.error(err);
+              searchStatus.innerHTML = "An error occurred while loading the vault list... check logs for details.";
+            } finally {
+              searchBtn.removeAttribute("disabled");
+              searchAddress.removeAttribute("disabled");
+            }
+          }
+
+          // Function to search:
+          const search = () => {
+            const address = searchAddress.value;
+            if (!address) return;
+            displayVaultInfo(`${apiUrl}${address}`);
+          }
+
+          // Add functionality:
+          searchAddress.addEventListener("keydown", e => e.key === "Enter" ? search() : null);
+          searchBtn.addEventListener("click", search);
+        });
+      </script>
+      <div id="search-bar">
+        <input id="search-address" type="text" placeholder="Address (0x0a1bc...)" name="address">
+        <button id="search-btn">🔎</button>
+      </div>
+      <div id="search-status">
+        <!-- Search Status -->
+      </div>
+      <div id="search-results">
+        <!-- Search Results -->
+      </div>
+    </main>
+    <footer>
+      Made by <a href="https://ncookie.ca" target="_blank">ncookie.eth</a> & <a href="https://trmid.eth.limo">trmid.eth</a>
+    </footer>
+  </body>
+</html>
