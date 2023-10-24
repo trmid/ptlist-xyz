@@ -142,6 +142,10 @@
     <main>
       <script>
         window.addEventListener("load", () => {
+          // Get query params:
+          const params = new URLSearchParams(window.location.search);
+          const defaultSearchString = params.get("search");
+
           // Get HTML elements:
           const searchAddress = document.getElementById("search-address");
           const searchBtn = document.getElementById("search-btn");
@@ -210,6 +214,12 @@
           // Add functionality:
           searchAddress.addEventListener("keydown", e => e.key === "Enter" ? search() : null);
           searchBtn.addEventListener("click", search);
+
+          // Trigger initial search:
+          if (defaultSearchString) {
+            searchAddress.value = defaultSearchString;
+            search();
+          }
         });
       </script>
       <div id="search-bar">
